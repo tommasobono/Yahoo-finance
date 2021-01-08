@@ -1,0 +1,183 @@
+import re
+import json
+import csv
+from io import StringIO
+from bs4 import BeautifulSoup
+import requests
+import pandas as pd 
+
+# url templates
+url_stats = 'https://finance.yahoo.com/quote/{}/key-statistics?p={}'
+url_profile = 'https://finance.yahoo.com/quote/{}/profile?p={}'
+url_financials = 'https://finance.yahoo.com/quote/{}/financials?p={}'
+
+# the stock I want to scrape
+stock = 'TSLA'
+
+#programma per trovare i financial statements
+
+response = requests.get(url_financials.format(stock, stock))
+soup = BeautifulSoup(response.text, 'html.parser')
+
+
+pattern = re.compile(r'\s--\sData\s--\s')
+script_data = soup.find('script', text=pattern).contents[0]
+
+# find the starting position of the json string
+start = script_data.find("context")-2
+
+# slice the json string
+json_data = json.loads(script_data[start:-12])
+
+json_data['context'].keys()
+json_data['context']['dispatcher']['stores']['QuoteSummaryStore'].keys()
+
+annual_is = json_data['context']['dispatcher']['stores']['QuoteSummaryStore']['incomeStatementHistory']['incomeStatementHistory']
+quarterly_is = json_data['context']['dispatcher']['stores']['QuoteSummaryStore']['incomeStatementHistoryQuarterly']['incomeStatementHistory']
+
+annual_cf = json_data['context']['dispatcher']['stores']['QuoteSummaryStore']['cashflowStatementHistory']['cashflowStatements']
+quarterly_cf = json_data['context']['dispatcher']['stores']['QuoteSummaryStore']['cashflowStatementHistoryQuarterly']['cashflowStatements']
+
+annual_bs = json_data['context']['dispatcher']['stores']['QuoteSummaryStore']['balanceSheetHistory']['balanceSheetStatements']
+quarterly_bs = json_data['context']['dispatcher']['stores']['QuoteSummaryStore']['balanceSheetHistoryQuarterly']['balanceSheetStatements']
+
+#consolidate annual income statement 
+
+annual_is_stmts = []
+
+for s in annual_is:
+    statement = {}
+    for key, val in s.items():
+        try:
+            statement[key] = val['raw']
+        except TypeError:
+            continue 
+        except KeyError:
+            continue
+    annual_is_stmts.append(statement)
+    
+#consolidate annual balance sheet 
+
+annual_bs_stmts = []
+
+for s in annual_bs:
+    statement = {}
+    for key, val in s.items():
+        try:
+            statement[key] = val['raw']
+        except TypeError:
+            continue
+        except KeyError:
+            continue
+    annual_bs_stmts.append(statement)
+    
+#consolidate annual cashflow 
+
+annual_cf_stmts = []
+
+for s in annual_cf:
+    statement = {}
+    for key, val in s.items():
+        try:
+            statement[key] = val['raw']
+        except TypeError:
+            continue
+        except KeyError:
+            continue
+    annual_cf_stmts.append(statement)
+
+    
+#consolidate quarterly income statement 
+
+quarterly_is_stmts = []
+
+for s in quarterly_is:
+    statement = {}
+    for key, val in s.items():
+        try:
+            statement[key] = val['raw']
+        except TypeError:
+            continue
+        except KeyError:
+            continue
+    quarterly_is_stmts.append(statement)
+    
+       
+
+#consolidate quarterly balance sheet
+
+quarterly_bs_stmts = []
+
+for s in quarterly_bs:
+    statement = {}
+    for key, val in s.items():
+        try:
+            statement[key] = val['raw']
+        except TypeError:
+            continue
+        except KeyError:
+            continue
+    quarterly_bs_stmts.append(statement)
+
+
+#consolidate quarterly cashflow
+
+quarterly_cf_stmts = []
+
+for s in quarterly_cf:
+    statement = {}
+    for key, val in s.items():
+        try:
+            statement[key] = val['raw']
+        except TypeError:
+            continue
+        except KeyError:
+            continue
+    quarterly_cf_stmts.append(statement)
+
+
+
+    
+
+income_statement_annual = pd.DataFrame({'2019' : annual_is_stmts[0],
+                                        '2018' : annual_is_stmts[1],
+                                        '2017' : annual_is_stmts[2],
+                                        '2016' : annual_is_stmts[3]})
+
+balance_sheet_annual = pd.DataFrame({'2019' : annual_bs_stmts[0],
+                                     '2018' : annual_bs_stmts[1],
+                                     '2017' : annual_bs_stmts[2],
+                                     '2016' : annual_bs_stmts[3]})
+
+
+cash_flow_annual = pd.DataFrame({'2019' : annual_cf_stmts[0],
+                                 '2018' : annual_cf_stmts[1],
+                                 '2017' : annual_cf_stmts[2],
+                                 '2016' : annual_cf_stmts[3]})
+
+
+income_statement_quarterly = pd.DataFrame({'settembre 2020' : quarterly_is_stmts[0],
+                                           'giugno 2020' : quarterly_is_stmts[1],
+                                           'marzo 2020' : quarterly_is_stmts[2],
+                                           'dicembre 2019' : quarterly_is_stmts[3]})
+
+balance_sheet_quarterly = pd.DataFrame({'settembre 2020' : quarterly_bs_stmts[0],
+                                        'giugno 2020' : quarterly_bs_stmts[1],
+                                        'marzo 2020' : quarterly_bs_stmts[2],
+                                        'dicembre 2019' : quarterly_bs_stmts[3]})
+
+cash_flow_quarterly = pd.DataFrame({'settembre 2020' : quarterly_cf_stmts[0],
+                                    'giugno 2020' : quarterly_cf_stmts[1],
+                                    'marzo 2020' : quarterly_cf_stmts[2],
+                                    'dicembre 2020' : quarterly_cf_stmts[3]})
+
+
+
+#per salvare su excel 
+#income_statement_annual.to_excel('C:/Users/42924/Desktop/Tommaso/Metti nome.xlsx')
+#balance_sheet_annual.to_excel('C:/Users/42924/Desktop/Tommaso/TTM_bs.xlsx')
+#cash_flow_annual.to_excel('C:/Users/42924/Desktop/Tommaso/TTM_cf.xlsx')
+
+#income_statement_quarterly.to_excel('C:/Users/42924/Desktop/Tommaso/Metti nome.xlsx')
+#balance_sheet_quarterly.to_excel('C:/Users/42924/Desktop/Tommaso/Metti nome.xlsx')
+#cash_flow_quarterly.to_excel('C:/Users/42924/Desktop/Tommaso/Metti nome.xlsx')
